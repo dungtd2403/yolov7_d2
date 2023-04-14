@@ -142,7 +142,7 @@ def vis_res_fast(res, img, class_names, colors, thresh):
     if ins.has("pred_boxes"):
         bboxes = ins.pred_boxes.tensor.cpu().numpy()
     scores = ins.scores.cpu().numpy()
-    clss = ins.pred_classes.cpu().numpy().astype(int)
+    clss = ins.pred_classes.cpu().numpy()
     if ins.has("pred_bit_masks"):
         bit_masks = ins.pred_bit_masks
         if isinstance(bit_masks, BitMasks):
@@ -150,13 +150,7 @@ def vis_res_fast(res, img, class_names, colors, thresh):
         # img = vis_bitmasks_with_classes(img, clss, bit_masks)
         # img = vis_bitmasks_with_classes(img, clss, bit_masks, force_colors=colors, mask_border_color=(255, 255, 255), thickness=2)
         img = vis_bitmasks_with_classes(
-            img, 
-            clss, 
-            bit_masks,
-            class_names=class_names,
-            force_colors=None, 
-            draw_contours=True, 
-            alpha=0.8
+            img, clss, bit_masks, force_colors=None, draw_contours=True, alpha=0.8
         )
 
     if ins.has("pred_masks"):
@@ -167,7 +161,6 @@ def vis_res_fast(res, img, class_names, colors, thresh):
             img,
             clss,
             bit_masks,
-            class_names=class_names,
             force_colors=None,
             draw_contours=True,
             alpha=0.6,
@@ -213,7 +206,7 @@ if __name__ == "__main__":
 
     iter = ImageSourceIter(args.input)
     if args.wandb_project is not None:
-        from yolov7.utils.wandb.wandb_logger import WandbInferenceLogger
+        from wandadb.wandb_logger import WandbInferenceLogger
 
         inference_logger = WandbInferenceLogger(
             wandb_entity=args.wandb_entity,
@@ -224,7 +217,7 @@ if __name__ == "__main__":
     else:
         inference_logger = None
 
-    while iter.ok:
+    for i in trange(len(iter.srcs)):
         im = next(iter)
         if isinstance(im, str):
             image_path = im

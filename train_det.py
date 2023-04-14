@@ -15,7 +15,6 @@ from detectron2.utils import comm
 from yolov7.data.dataset_mapper import MyDatasetMapper, MyDatasetMapper2
 from yolov7.config import add_yolo_config
 from yolov7.utils.d2overrides import default_setup
-from yolov7.utils.wandb.wandb_logger import is_wandb_available
 
 
 class Trainer(DefaultTrainer):
@@ -38,16 +37,23 @@ class Trainer(DefaultTrainer):
         model = build_model(cfg)
         return model
 
-    def build_writers(self):
-        if self.cfg.WANDB.ENABLED is is_wandb_available():
-            from yolov7.utils.wandb.wandb_logger import WandbWriter
-
-            writers = super().build_writers() + [
-                WandbWriter(self.cfg.WANDB.PROJECT_NAME)
-            ]
+    def run_step(self):
+        self._trainer.iter = self.iter
+        self._trainer.run_step()
+        if comm.get_world_size() == 1:
+            self.model.update_iter(self.iter)
         else:
-            writers = super().build_writers()
-        return writers
+            self.model.module.update_iter(self.iter)
+
+        if (
+            self.iter > self.cfg.INPUT.MOSAIC_AND_MIXUP.DISABLE_AT_ITER
+            and self.cfg.INPUT.MOSAIC_AND_MIXUP.ENABLED
+        ):
+            # disable augmentation
+            self.cfg.defrost()
+            self.cfg.INPUT.MOSAIC_AND_MIXUP.ENABLED = False
+            self.cfg.freeze()
+            self.custom_mapper.disable_aug()
 
 
 def setup(args):
